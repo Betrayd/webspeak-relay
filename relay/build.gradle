@@ -1,0 +1,34 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral();
+}
+
+dependencies {
+    // implementation 'com.google.guava:guava:32.1.2-jre'
+    // implementation 'com.google.code.gson:gson:2.10.1'
+
+    implementation 'org.eclipse.jetty:jetty-server:12.0.14'
+    implementation 'org.eclipse.jetty.ee10:jetty-ee10-servlet:12.0.14'
+
+    implementation 'org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jetty-server:12.0.14'
+    
+    runtimeOnly 'org.slf4j:slf4j-simple:2.0.16'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withSourcesJar()
+}
+
+application {
+    mainClass = "net.betrayd.webspeak.relay.WebSpeakRelay"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
