@@ -52,6 +52,6 @@ public class WebSpeakRelay {
 
         server.start();
         jettyServer = server;
-        LOGGER.info("Relay server started!");
+        LOGGER.info("Server running on port {}", port);
     }
 }
