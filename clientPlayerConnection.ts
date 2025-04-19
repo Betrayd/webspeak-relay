@@ -49,10 +49,18 @@ export class ClientPlayerConnection {
     }
 
     public disconnect(code?: number, reason?: string) {
+        if(this.socket.CLOSED)
+        {
+            return;
+        }
         this.socket.close(code, reason);
     }
 
     public send(message: string) {
+        if(this.socket.CLOSED)
+        {
+            return;
+        }
         this.socket.send(message);
     }
 
