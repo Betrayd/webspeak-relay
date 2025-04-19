@@ -6,17 +6,46 @@ import { servers } from "./index.ts";
 export class ClientPlayerConnection {
 
     socket!: WebSocket;
+    requestURL!: string;
     serverID!: string | undefined;
     serverConnection: ServerPlayerConnection | null = null;
     origin!: string| null;
 
-    constructor(socket: WebSocket, server: string | undefined, origin: string | null) {
-        socket.addEventListener("open", this.eventOpen);
-        socket.addEventListener("message", this.eventMessage);
-        socket.addEventListener("close", this.eventClose);
+    constructor(socket: WebSocket, requestURL: string, server: string | undefined, origin: string | null) {
+        socket.addEventListener("open", this);
+        socket.addEventListener("message", this);
+        socket.addEventListener("close", this);
         this.socket = socket;
+        this.requestURL = requestURL;
         this.serverID = server;
         this.origin = origin;
+    }
+
+    handleEvent(event: Event) 
+    {
+        switch(event.type)
+        {
+            case "open":
+                this.eventOpen();
+                break;
+            case "message":
+                if(event instanceof MessageEvent)
+                    {
+                        if(typeof event.data != "string")
+                        {
+                            Error("we were sent non string data in message!");
+                            return;
+                        }
+                        this.eventMessage(event);
+                    }
+                break;
+            case "close":
+                if(event instanceof CloseEvent)
+                {
+                    this.eventClose(event);
+                }
+                break;
+        }
     }
 
     public disconnect(code?: number, reason?: string) {
@@ -39,7 +68,7 @@ export class ClientPlayerConnection {
             throw new Error("The server being connected to does not exist");
         }
 
-        const sessionID = new URL(this.socket.url).searchParams.get("id");
+        const sessionID = new URL(this.requestURL).searchParams.get("id");
         if (sessionID == null) {
             this.socket.close(1002, "No ID provided");
             throw new Error("No ID provided");

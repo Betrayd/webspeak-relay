@@ -3,14 +3,43 @@ import { servers } from "./index.ts";
 
 export class ServerConnection {
     socket!: WebSocket;
+    requestURL!: string;
     privateID: string | null = null;
     publicID: string | null = null;
     connections: Map<string, LinkedConnection> = new Map<string, LinkedConnection>();
-    constructor(socket: WebSocket) {
-        socket.addEventListener("open", this.eventOpen);
-        socket.addEventListener("message", this.eventMessage);
-        socket.addEventListener("close", this.eventClose);
+    constructor(socket: WebSocket, requestURL: string) {
+        socket.addEventListener("open", this);
+        socket.addEventListener("message", this);
+        socket.addEventListener("close", this);
+        this.requestURL = requestURL;
         this.socket = socket;
+    }
+
+    handleEvent(event: Event) 
+    {
+        switch(event.type)
+        {
+            case "open":
+                this.eventOpen();
+                break;
+            case "message":
+                if(event instanceof MessageEvent)
+                    {
+                        if(typeof event.data != "string")
+                        {
+                            Error("we were sent non string data in message!");
+                            return;
+                        }
+                        this.eventMessage(event);
+                    }
+                break;
+            case "close":
+                if(event instanceof CloseEvent)
+                {
+                    this.eventClose(event);
+                }
+                break;
+        }
     }
 
     public usesPrivateKey(testID: string): boolean {
@@ -30,7 +59,7 @@ export class ServerConnection {
         console.log(`server connected ${this}`);
     }
 
-    private eventMessage(event: MessageEvent<string>) {
+    private eventMessage(event: MessageEvent) {
         if (event.data.length > 0) { this.establishSessionID(event.data) }
     }
 
@@ -47,6 +76,7 @@ export class ServerConnection {
         if (this.privateID != null) {
             this.send(this.privateID);
         }
+        console.log("server chose public id:", ID);
     }
 
     private eventClose(event: CloseEvent) {

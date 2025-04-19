@@ -5,14 +5,43 @@ import { servers } from "./index.ts";
 
 export class ServerPlayerConnection {
     socket!: WebSocket;
+    requestURL!: string;
     server!: ServerConnection | undefined;
     sessionID: string | null = null;
     private connectedClient: ClientPlayerConnection | null = null;
-    constructor(socket: WebSocket) {
-        socket.addEventListener("open", this.eventOpen);
-        socket.addEventListener("message", this.eventMessage);
-        socket.addEventListener("close", this.eventClose);
+    constructor(socket: WebSocket, requestURL: string) {
+        socket.addEventListener("open", this);
+        socket.addEventListener("message", this);
+        socket.addEventListener("close", this);
+        this.requestURL = requestURL;
         this.socket = socket;
+    }
+
+    handleEvent(event: Event) 
+    {
+        switch(event.type)
+        {
+            case "open":
+                this.eventOpen();
+                break;
+            case "message":
+                if(event instanceof MessageEvent)
+                    {
+                        if(typeof event.data != "string")
+                        {
+                            Error("we were sent non string data in message!");
+                            return;
+                        }
+                        this.eventMessage(event);
+                    }
+                break;
+            case "close":
+                if(event instanceof CloseEvent)
+                {
+                    this.eventClose(event);
+                }
+                break;
+        }
     }
 
     public connectClient(connectionAddress: string, connection: ClientPlayerConnection) {
@@ -34,10 +63,13 @@ export class ServerPlayerConnection {
     }
 
     private eventOpen() {
-        const params: URLSearchParams = new URL(this.socket.url).searchParams;
+        const params: URLSearchParams = new URL(this.requestURL).searchParams;
         const privateServerID = params.get("key");
         const publicServerID = params.get("server");
         this.sessionID = params.get("id");
+
+        console.log("Server opened player with id: ", this.sessionID, "server:", publicServerID);
+
         if (publicServerID == null || privateServerID == null || this.sessionID == null) {
             this.disconnect(1002, "Not correct parameters");
             throw new Error("Not correct parameters");
