@@ -72,7 +72,8 @@ export class ServerPlayerConnection {
 
         if (publicServerID == null || privateServerID == null || this.sessionID == null) {
             this.disconnect(1002, "Not correct parameters");
-            throw new Error("Not correct parameters");
+            console.error("Not correct parameters");
+            return;
         }
         this.server = servers.get(publicServerID);
         if (this.server != undefined && this.server.usesPrivateKey(privateServerID)) {

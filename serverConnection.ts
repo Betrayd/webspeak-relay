@@ -65,11 +65,13 @@ export class ServerConnection {
 
     private establishSessionID(ID: string) {
         if (this.publicID != null) {
-            throw new Error("This session already has an ID.");
+            console.error("This session already has an ID.");
+            return;
         }
         if (servers.has(ID)) {
             this.disconnect(1002, "There is already a server using this ID.");
-            throw new Error("There is already a server using this ID.");
+            console.error("There is already a server using this ID.");
+            return;
         }
         servers.set(ID, this);
         this.publicID = ID;

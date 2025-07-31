@@ -59,29 +59,34 @@ export class ClientPlayerConnection {
     private eventOpen() {
         if (this.serverID == null) {
             this.socket.close(1002, "No server ID was supplied.");
-            throw new Error("No server ID was supplied.");
+            console.error("No server ID was supplied.");
+            return;
         }
 
         const server: ServerConnection | undefined = servers.get(this.serverID);
         if (server == undefined) {
             this.socket.close(1002, "The server being connected to does not exist");
-            throw new Error("The server being connected to does not exist");
+            console.error("The server being connected to does not exist");
+            return;
         }
 
         const sessionID = new URL(this.requestURL).searchParams.get("id");
         if (sessionID == null) {
             this.socket.close(1002, "No ID provided");
-            throw new Error("No ID provided");
+            console.error("No ID provided");
+            return;
         }
         const link: LinkedConnection | undefined = server.connections.get(sessionID);
         if (link == undefined) {
             this.socket.close(1002, "No player exists with session ID " + sessionID);
-            throw new Error("No player exists with session ID " + sessionID);
+            console.error("No player exists with session ID " + sessionID);
+            return;
         }
         this.serverConnection = link.serverConnection;
         if (this.origin == null) {
             this.socket.close(1002, "No origin");
-            throw new Error("No origin");
+            console.error("No origin");
+            return;
         }
         this.serverConnection.connectClient(this.origin, this);
         link.clientConnection = this;
