@@ -1,12 +1,11 @@
-import { LinkedConnection } from "./linkedConnection.ts";
-import { servers } from "./index.ts";
+import { ClientConnection } from "./clientConnection.ts";
+import { storedPlayers } from "./index.ts";
+import { generateSessionID } from "./index.ts"
 
 export class ServerConnection {
     socket!: WebSocket;
     requestURL!: string;
-    privateID: string | null = null;
-    publicID: string | null = null;
-    connections: Map<string, LinkedConnection> = new Map<string, LinkedConnection>();
+    connections: Map<string, ClientConnection> = new Map<string, ClientConnection>();
     constructor(socket: WebSocket, requestURL: string) {
         socket.addEventListener("open", this);
         socket.addEventListener("message", this);
@@ -25,11 +24,6 @@ export class ServerConnection {
             case "message":
                 if(event instanceof MessageEvent)
                     {
-                        if(typeof event.data != "string")
-                        {
-                            Error("we were sent non string data in message!");
-                            return;
-                        }
                         this.eventMessage(event);
                     }
                 break;
@@ -42,10 +36,6 @@ export class ServerConnection {
         }
     }
 
-    public usesPrivateKey(testID: string): boolean {
-        return this.privateID != null && this.privateID === testID;
-    }
-
     public disconnect(code?: number, reason?: string) {
         this.socket.close(code, reason);
     }
@@ -55,40 +45,37 @@ export class ServerConnection {
     }
 
     private eventOpen() {
-        this.privateID = crypto.randomUUID();
         console.log(`server connected ${this}`);
     }
 
     private eventMessage(event: MessageEvent) {
-        if (event.data.length > 0) { this.establishSessionID(event.data) }
-    }
-
-    private establishSessionID(ID: string) {
-        if (this.publicID != null) {
-            console.error("This session already has an ID.");
+        if(typeof event.data != "string")
+        {
+            console.error("we were sent non string data in message!");
             return;
         }
-        if (servers.has(ID)) {
-            this.disconnect(1002, "There is already a server using this ID.");
-            console.error("There is already a server using this ID.");
-            return;
+        const index = event.data.indexOf(";");
+        const sessionRelay = event.data.slice(0, index);
+        const data = event.data.slice(index + 1);
+        if(sessionRelay.length <= 0){
+            const packet = JSON.parse(data);
+            if(packet == undefined || packet.type == undefined || typeof packet.type === 'string'){
+                console.error("we were sent bad data for packet!");
+                return;
+            }
+            if(packet.type === "getSessionId"){
+                const sessionID = generateSessionID(this);
+                this.send(';{"type":"returnSessionId","requestId":'+packet.requestId+',"id":"'+sessionID+'"}');
+                return;
+            }
         }
-        servers.set(ID, this);
-        this.publicID = ID;
-        if (this.privateID != null) {
-            this.send(this.privateID);
-        }
-        console.log("server chose public id:", ID);
     }
 
     private eventClose(event: CloseEvent) {
         for (const connection of this.connections.values()) {
-            connection.serverConnection.disconnect();
+            connection.disconnect();
         }
-        this.connections.clear();
-        if (this.publicID != null) {
-            servers.delete(this.publicID);
-        }
+        storedPlayers.removeKeysWithValue(this);
     }
 
 }

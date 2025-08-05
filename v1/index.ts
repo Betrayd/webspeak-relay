@@ -1,17 +1,14 @@
-import { MultiElementBiMap } from './multiElementBiMap.ts';
+//TODO: make build actually take advantage of typescript instead of hacking in the java implementation
 import { ServerConnection } from './serverConnection.ts';
-import { ClientConnection } from './clientConnection.ts';
+import { ServerPlayerConnection } from "./serverPlayerConnection.ts";
+import { ClientPlayerConnection } from "./clientPlayerConnection.ts";
 
 const SERVER_CONNECTION_ROUTE = new URLPattern({ pathname: "/host" });
-const CLIENT_CONNECTION_ROUTE = new URLPattern({ pathname: "/join" });
+const ADD_PLAYER_ROUTE = new URLPattern({ pathname: "/addplayer" });
+const CLIENT_CONNECTION_ROUTE = new URLPattern({ pathname: "/relay/:serverid/:sessionid" });
 
-export const storedPlayers: MultiElementBiMap<string, ServerConnection> = new MultiElementBiMap<string, ServerConnection>();
 
-export function generateSessionID(server : ServerConnection): string{
-    const returnID = crypto.randomUUID();
-    storedPlayers.add(returnID, server);
-    return returnID;
-}
+export const servers: Map<string, ServerConnection> = new Map<string, ServerConnection>();
 
 const handler = (request: Request, connInfo: Deno.ServeHandlerInfo<Deno.Addr>): Response => {
   if (request.headers.get("upgrade") != "websocket") {
@@ -35,9 +32,14 @@ const handler = (request: Request, connInfo: Deno.ServeHandlerInfo<Deno.Addr>): 
     new ServerConnection(socket, request.url);
     return response;
   }
+  else if (ADD_PLAYER_ROUTE.exec(request.url)) {
+    const { socket, response } = Deno.upgradeWebSocket(request);
+    new ServerPlayerConnection(socket, request.url);
+    return response;
+  }
   else if (matchRelay) {
     const { socket, response } = Deno.upgradeWebSocket(request);
-    new ClientConnection(socket, request.url, getRemoteAddress(connInfo).hostname);
+    new ClientPlayerConnection(socket, request.url, matchRelay.pathname.groups.serverid, getRemoteAddress(connInfo).hostname);
     return response;
   }
 
