@@ -57,38 +57,45 @@ export class ClientConnection {
         const sessionId = new URL(this.requestURL).searchParams.get("id");
         if (sessionId == null) {
             this.socket.close(1002, "No session ID was supplied.");
-            console.error("No session ID was supplied.");
+            console.warn("Client connecting had no session ID was supplied.");
             return;
         }
 
         const serverConnection = storedPlayers.getByKey(sessionId);
         if (serverConnection == undefined) {
             this.socket.close(1002, "No server assosiated with the session ID");
-            console.error("No server assosiated with the session ID");
+            console.warn("Client connecting had no server assosiated with the session ID");
             return;
         }
 
         if (this.origin == null) {
             this.socket.close(1002, "No origin");
-            console.error("No origin");
+            console.warn("Client connecting had no origin");
             return;
         }
         
         this.sessionId = sessionId;
         this.serverConnection = serverConnection;
         
-        //this needs to update the map if we are allowed to connect
-        //this.serverConnection.connectClient(this.origin, this);
+        //add the player to the server disconnect the client otherwise. Don't inform the server
+        if(this.serverConnection.clientConnected(this)){
+            this.socket.close(1008, "Client Already Connected");
+            console.warn("Client connecting using already connected session ID");
+            return;
+        }
     }
 
     private eventMessage(event: MessageEvent) {
-        if (this.serverConnection == null) { return; }
-        return;
+        this.relayPacket(event.data);
     }
 
     private eventClose(event: CloseEvent) {
         if (this.serverConnection == null) { return; }
-        //this.server.discconectClient();
+        this.serverConnection.clientDisconnected(this.sessionId, event.code, event.reason);
     }
 
+    relayPacket(packet: string){
+        if (this.serverConnection == null) { return; }
+        this.serverConnection.send(this.sessionId+";"+packet);
+    }
 }

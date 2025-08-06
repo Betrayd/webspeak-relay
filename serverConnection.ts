@@ -57,25 +57,89 @@ export class ServerConnection {
         const index = event.data.indexOf(";");
         const sessionRelay = event.data.slice(0, index);
         const data = event.data.slice(index + 1);
-        if(sessionRelay.length <= 0){
-            const packet = JSON.parse(data);
-            if(packet == undefined || packet.type == undefined || typeof packet.type === 'string'){
-                console.error("we were sent bad data for packet!");
-                return;
-            }
-            if(packet.type === "getSessionId"){
-                const sessionID = generateSessionID(this);
-                this.send(';{"type":"returnSessionId","requestId":'+packet.requestId+',"id":"'+sessionID+'"}');
-                return;
-            }
+        if(sessionRelay.length > 0){
+            this.relayPacket(sessionRelay, data);
+            return;    
+        }
+        const packet = JSON.parse(data);
+        if(packet == undefined || packet.type == undefined || typeof packet.type === 'string'){
+            console.error("we were sent bad data for packet!");
+            return;
+        }
+        if(packet.type === "getSessionId"){
+            this.handleGetSessionId(packet.requestId);
+            return;
+        }
+        if(packet.type === "disconnectClient"){
+            this.handleDisconnectClient(packet.id, packet.status, packet.reason);
+            return;
         }
     }
 
     private eventClose(event: CloseEvent) {
         for (const connection of this.connections.values()) {
-            connection.disconnect();
+            connection.disconnect(1001, "Webspeak server closed");
         }
         storedPlayers.removeKeysWithValue(this);
     }
 
+    relayPacket(sessionID: string, packet: string){
+        if(!this.connections.has(sessionID)){
+            return;
+        }
+        const client = this.connections.get(sessionID);
+        client?.send(packet);
+    }
+
+    private handleGetSessionId(requestId?: number){
+        const sessionID = generateSessionID(this);
+        this.sendReturnSessionId(requestId, sessionID);
+    }
+
+    private handleDisconnectClient(id?: string, statusCode?: number, reason?: string){
+        if(id == undefined){
+            return;
+        }
+        this.disconnectClient(id, statusCode, reason);
+    }
+
+    private sendReturnSessionId(requestId?: number, sessionID?: string){
+        this.send(';{"type":"returnSessionId","requestId":'+requestId+',"id":"'+sessionID+'"}');
+    }
+
+    private sendAddedClient(sessionID?: string){
+        this.send(';{"type":"addedClient","id":"'+sessionID+'"}');
+    }
+
+    private sendClosedClient(sessionID?: string, statusCode?: number, reason?: string){
+        this.send(';{"type": "closedClient","id": "'+sessionID+'","statuscode": '+statusCode+',"reason": "'+reason+'"}');
+    }
+
+    public clientConnected(client: ClientConnection): boolean{
+        if(client.sessionId == undefined || this.connections.has(client.sessionId)){
+            return false;
+        }
+
+        const sessionId = client.sessionId;
+
+        this.connections.set(sessionId, client);
+        this.sendAddedClient(sessionId);
+        return true;
+    }
+
+    public clientDisconnected(session: string, statusCode: number, reason: string){
+        this.sendClosedClient(session, statusCode, reason);
+        this.connections.delete(session);
+    }
+
+    public disconnectClient(session: string, statusCode?: number, reason?: string): boolean{
+        if(!this.connections.has(session)){
+            return false;
+        }
+        const client = this.connections.get(session);
+        
+        client?.disconnect(statusCode, reason);
+
+        return true;
+    }
 }
