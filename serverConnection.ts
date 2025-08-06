@@ -5,13 +5,15 @@ import { generateSessionID } from "./index.ts"
 export class ServerConnection {
     socket!: WebSocket;
     requestURL!: string;
+    origin!: string| null;
     connections: Map<string, ClientConnection> = new Map<string, ClientConnection>();
-    constructor(socket: WebSocket, requestURL: string) {
+    constructor(socket: WebSocket, requestURL: string, origin: string | null) {
         socket.addEventListener("open", this);
         socket.addEventListener("message", this);
         socket.addEventListener("close", this);
         this.requestURL = requestURL;
         this.socket = socket;
+        this.origin = origin;
     }
 
     handleEvent(event: Event) 
@@ -45,13 +47,18 @@ export class ServerConnection {
     }
 
     private eventOpen() {
-        console.log(`server connected ${this}`);
+        if (this.origin == null) {
+            this.socket.close(1002, "No origin");
+            console.warn("Server connecting had no origin");
+            return;
+        }
+        console.log(`server connected ${this.origin}`);
     }
 
     private eventMessage(event: MessageEvent) {
         if(typeof event.data != "string")
         {
-            console.error("we were sent non string data in message!");
+            console.warn("we were sent non string data in message!");
             return;
         }
         const index = event.data.indexOf(";");
@@ -61,17 +68,25 @@ export class ServerConnection {
             this.relayPacket(sessionRelay, data);
             return;    
         }
-        const packet = JSON.parse(data);
-        if(packet == undefined || packet.type == undefined || typeof packet.type === 'string'){
-            console.error("we were sent bad data for packet!");
-            return;
+        
+        let packet = undefined;
+        try{
+            packet = JSON.parse(data);
+            if(packet == undefined || packet.type == undefined || typeof packet.type != "string"){
+                console.warn("we were sent bad data for packet!");
+                return;
+            }
+            if(packet.type === "getSessionId"){
+                this.handleGetSessionId(packet.requestId);
+                return;
+            }
+            if(packet.type === "disconnectClient"){
+                this.handleDisconnectClient(packet.id, packet.status, packet.reason);
+                return;
+            }
         }
-        if(packet.type === "getSessionId"){
-            this.handleGetSessionId(packet.requestId);
-            return;
-        }
-        if(packet.type === "disconnectClient"){
-            this.handleDisconnectClient(packet.id, packet.status, packet.reason);
+        catch(error){
+            console.warn("could not read packet", error);
             return;
         }
     }
@@ -81,6 +96,8 @@ export class ServerConnection {
             connection.disconnect(1001, "Webspeak server closed");
         }
         storedPlayers.removeKeysWithValue(this);
+        
+        console.log(`server closed ${this.origin}`);
     }
 
     relayPacket(sessionID: string, packet: string){

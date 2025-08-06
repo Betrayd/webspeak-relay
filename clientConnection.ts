@@ -53,7 +53,6 @@ export class ClientConnection {
     }
 
     private eventOpen() {
-        console.log(`client connected ${this}`);
         const sessionId = new URL(this.requestURL).searchParams.get("id");
         if (sessionId == null) {
             this.socket.close(1002, "No session ID was supplied.");
@@ -78,11 +77,13 @@ export class ClientConnection {
         this.serverConnection = serverConnection;
         
         //add the player to the server disconnect the client otherwise. Don't inform the server
-        if(this.serverConnection.clientConnected(this)){
+        if(!this.serverConnection.clientConnected(this)){
             this.socket.close(1008, "Client Already Connected");
             console.warn("Client connecting using already connected session ID");
             return;
         }
+
+        console.log(`client connected ${this.origin}`);
     }
 
     private eventMessage(event: MessageEvent) {
@@ -92,6 +93,8 @@ export class ClientConnection {
     private eventClose(event: CloseEvent) {
         if (this.serverConnection == null) { return; }
         this.serverConnection.clientDisconnected(this.sessionId, event.code, event.reason);
+
+        console.log(`client closed ${this.origin}`);
     }
 
     relayPacket(packet: string){

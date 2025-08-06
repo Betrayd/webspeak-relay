@@ -32,7 +32,7 @@ const handler = (request: Request, connInfo: Deno.ServeHandlerInfo<Deno.Addr>): 
   const matchRelay: URLPatternResult | null = CLIENT_CONNECTION_ROUTE.exec(request.url);
   if (SERVER_CONNECTION_ROUTE.exec(request.url)) {
     const { socket, response } = Deno.upgradeWebSocket(request);
-    new ServerConnection(socket, request.url);
+    new ServerConnection(socket, request.url, getRemoteAddress(connInfo).hostname);
     return response;
   }
   else if (matchRelay) {
