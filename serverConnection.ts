@@ -80,6 +80,10 @@ export class ServerConnection {
                 this.handleGetSessionId(packet.requestId);
                 return;
             }
+            if(packet.type === "returnSessionId"){
+                this.handleReturnSessionId(packet.id, packet.status, packet.reason);
+                return;
+            }
             if(packet.type === "disconnectClient"){
                 this.handleDisconnectClient(packet.id, packet.status, packet.reason);
                 return;
@@ -111,6 +115,15 @@ export class ServerConnection {
     private handleGetSessionId(requestId?: number){
         const sessionID = generateSessionID(this);
         this.sendReturnSessionId(requestId, sessionID);
+    }
+
+    private handleReturnSessionId(id?: string, statusCode?: number, reason?: string){
+        if(id == undefined){
+            return;
+        }
+        if(this.disconnectClient(id, statusCode, reason)){
+            storedPlayers.removeByKey(id);
+        }
     }
 
     private handleDisconnectClient(id?: string, statusCode?: number, reason?: string){
