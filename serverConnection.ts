@@ -56,14 +56,20 @@ export class ServerConnection {
     }
 
     private eventMessage(event: MessageEvent) {
-        if(typeof event.data != "string")
+        const eventData = event.data;
+        if(typeof eventData != "string")
         {
-            console.warn("we were sent non string data in message!");
+            console.warn(`[${this.origin}]: Server sent non string data in message!`);
             return;
         }
-        const index = event.data.indexOf(";");
-        const sessionRelay = event.data.slice(0, index);
-        const data = event.data.slice(index + 1);
+        const index = eventData.indexOf(";");
+        if(index < 0 || index >= eventData.length){
+            console.warn(`[${this.origin}]: server sent bad data!`);
+            return;
+        }
+        const sessionRelay = eventData.slice(0, index);
+        const data = eventData.slice(index + 1);
+
         if(sessionRelay.length > 0){
             this.relayPacket(sessionRelay, data);
             return;    
@@ -73,7 +79,7 @@ export class ServerConnection {
         try{
             packet = JSON.parse(data);
             if(packet == undefined || packet.type == undefined || typeof packet.type != "string"){
-                console.warn("we were sent bad data for packet!");
+                console.warn(`[${this.origin}]: we were sent bad data for packet!`);
                 return;
             }
             if(packet.type === "getSessionId"){
@@ -90,7 +96,7 @@ export class ServerConnection {
             }
         }
         catch(error){
-            console.warn("could not read packet", error);
+            console.warn(`[${this.origin}]: could not read packet`, error);
             return;
         }
     }
@@ -106,6 +112,7 @@ export class ServerConnection {
 
     relayPacket(sessionID: string, packet: string){
         if(!this.connections.has(sessionID)){
+            console.warn(`[${this.origin}]: server trying to send data client not connected to it's server`);
             return;
         }
         const client = this.connections.get(sessionID);
