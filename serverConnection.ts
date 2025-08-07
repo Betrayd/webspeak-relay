@@ -87,11 +87,11 @@ export class ServerConnection {
                 return;
             }
             if(packet.type === "releaseSessionId"){
-                this.handleReleaseSessionId(packet.id, packet.status, packet.reason);
+                this.handleReleaseSessionId(packet.id, packet.statusCode, packet.reason);
                 return;
             }
             if(packet.type === "disconnectClient"){
-                this.handleDisconnectClient(packet.id, packet.status, packet.reason);
+                this.handleDisconnectClient(packet.id, packet.statusCode, packet.reason);
                 return;
             }
         }
@@ -149,7 +149,7 @@ export class ServerConnection {
     }
 
     private sendClosedClient(sessionID?: string, statusCode?: number, reason?: string){
-        this.send(';{"type": "closedClient","id": "'+sessionID+'","statuscode": '+statusCode+',"reason": "'+reason+'"}');
+        this.send(';{"type": "closedClient","id": "'+sessionID+'","statusCode": '+statusCode+',"reason": "'+reason+'"}');
     }
 
     public clientConnected(client: ClientConnection): boolean{
