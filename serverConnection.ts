@@ -86,8 +86,8 @@ export class ServerConnection {
                 this.handleGetSessionId(packet.requestId);
                 return;
             }
-            if(packet.type === "returnSessionId"){
-                this.handleReturnSessionId(packet.id, packet.status, packet.reason);
+            if(packet.type === "releaseSessionId"){
+                this.handleReleaseSessionId(packet.id, packet.status, packet.reason);
                 return;
             }
             if(packet.type === "disconnectClient"){
@@ -124,7 +124,7 @@ export class ServerConnection {
         this.sendReturnSessionId(requestId, sessionID);
     }
 
-    private handleReturnSessionId(id?: string, statusCode?: number, reason?: string){
+    private handleReleaseSessionId(id?: string, statusCode?: number, reason?: string){
         if(id == undefined){
             return;
         }
