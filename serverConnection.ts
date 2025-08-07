@@ -101,7 +101,7 @@ export class ServerConnection {
         }
     }
 
-    private eventClose(event: CloseEvent) {
+    private eventClose(_event: CloseEvent) {
         for (const connection of this.connections.values()) {
             connection.disconnect(1001, "Webspeak server closed");
         }
