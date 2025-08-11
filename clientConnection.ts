@@ -61,15 +61,15 @@ export class ClientConnection {
 
         const sessionId = new URL(this.requestURL).searchParams.get("id");
         if (sessionId == null) {
-            this.socket.close(1002, "No session Id was supplied.");
-            console.warn(`[${this.origin}]: Client connecting had no session Id was supplied.`);
+            this.socket.close(1002, "No session ID was supplied.");
+            console.warn(`[${this.origin}]: Client connecting had no session ID was supplied.`);
             return;
         }
 
         const serverConnection = storedPlayers.getByKey(sessionId);
         if (serverConnection == undefined) {
-            this.socket.close(1002, "No server assosiated with the session Id");
-            console.warn(`[${this.origin}]: Client connecting had no server assosiated with the session Id`);
+            this.socket.close(1002, "No server assosiated with the session ID");
+            console.warn(`[${this.origin}]: Client connecting had no server assosiated with the session ID`);
             return;
         }
         
@@ -79,7 +79,7 @@ export class ClientConnection {
         //add the player to the server disconnect the client otherwise. Don't inform the server
         if(!this.serverConnection.clientConnected(this)){
             this.socket.close(1008, "Client Already Connected");
-            console.warn(`[${this.origin}]: Client connecting using already connected session Id`);
+            console.warn(`[${this.origin}]: Client connecting using already connected session ID`);
             return;
         }
 
