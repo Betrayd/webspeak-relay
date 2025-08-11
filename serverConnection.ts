@@ -1,6 +1,6 @@
 import { ClientConnection } from "./clientConnection.ts";
 import { storedPlayers } from "./index.ts";
-import { generateSessionID } from "./index.ts"
+import { generateSessionId } from "./index.ts"
 
 export class ServerConnection {
     socket!: WebSocket;
@@ -110,18 +110,18 @@ export class ServerConnection {
         console.log(`server closed ${this.origin}`);
     }
 
-    relayPacket(sessionID: string, packet: string){
-        if(!this.connections.has(sessionID)){
+    relayPacket(sessionId: string, packet: string){
+        if(!this.connections.has(sessionId)){
             console.warn(`[${this.origin}]: server trying to send data client not connected to it's server`);
             return;
         }
-        const client = this.connections.get(sessionID);
+        const client = this.connections.get(sessionId);
         client?.send(packet);
     }
 
     private handleGetSessionId(requestId?: number){
-        const sessionID = generateSessionID(this);
-        this.sendReturnSessionId(requestId, sessionID);
+        const sessionId = generateSessionId(this);
+        this.sendReturnSessionId(requestId, sessionId);
     }
 
     private handleReleaseSessionId(id?: string, statusCode?: number, reason?: string){
@@ -140,16 +140,16 @@ export class ServerConnection {
         this.disconnectClient(id, statusCode, reason);
     }
 
-    private sendReturnSessionId(requestId?: number, sessionID?: string){
-        this.send(';{"type":"returnSessionId","requestId":'+requestId+',"id":"'+sessionID+'"}');
+    private sendReturnSessionId(requestId?: number, sessionId?: string){
+        this.send(';{"type":"returnSessionId","requestId":'+requestId+',"id":"'+sessionId+'"}');
     }
 
-    private sendAddedClient(sessionID?: string){
-        this.send(';{"type":"addedClient","id":"'+sessionID+'"}');
+    private sendAddedClient(sessionId?: string){
+        this.send(';{"type":"addedClient","id":"'+sessionId+'"}');
     }
 
-    private sendClosedClient(sessionID?: string, statusCode?: number, reason?: string){
-        this.send(';{"type": "closedClient","id": "'+sessionID+'","statusCode": '+statusCode+',"reason": "'+reason+'"}');
+    private sendClosedClient(sessionId?: string, statusCode?: number, reason?: string){
+        this.send(';{"type": "closedClient","id": "'+sessionId+'","statusCode": '+statusCode+',"reason": "'+reason+'"}');
     }
 
     public clientConnected(client: ClientConnection): boolean{
