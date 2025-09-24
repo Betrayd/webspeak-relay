@@ -43,6 +43,7 @@ export class ServerConnection {
     }
 
     public send(message: string) {
+        //wrap this in a socket.isOpen to stop potential crashes. leave it here to find the root cause by looking at the stack trace when it crashes
         this.socket.send(message);
     }
 
