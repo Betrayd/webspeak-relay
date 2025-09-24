@@ -165,7 +165,9 @@ export class ServerConnection {
     }
 
     public clientDisconnected(session: string, statusCode: number, reason: string){
-        this.sendClosedClient(session, statusCode, reason);
+        if(this.socket.OPEN){
+            this.sendClosedClient(session, statusCode, reason);
+        }
         this.connections.delete(session);
     }
 
