@@ -47,11 +47,15 @@ export class ServerConnection {
     }
 
     public disconnect(code?: number, reason?: string) {
-        this.socket.close(code, reason);
+        if(this.socket.readyState != WebSocket.CLOSED && this.socket.readyState != WebSocket.CLOSING){
+            this.socket.close(code, reason);
+        }
     }
 
     public send(message: string) {
-        this.socket.send(message);
+        if(this.socket.readyState == WebSocket.OPEN){
+            this.socket.send(message);
+        }
     }
 
     private eventOpen() {

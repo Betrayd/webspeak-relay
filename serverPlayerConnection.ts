@@ -46,20 +46,24 @@ export class ServerPlayerConnection {
 
     public connectClient(connectionAddress: string, connection: ClientPlayerConnection) {
         this.connectedClient = connection;
-        this.socket.send("relayClientConnect;{context:\"" + connectionAddress + "\"}");
+        this.send("relayClientConnect;{context:\"" + connectionAddress + "\"}");
     }
 
     public disconnectClient(statusCode: number, reason: string) {
         this.connectedClient = null;
-        this.socket.send("relayClientDisconnect;{statusCode:" + statusCode + ",reason:\"" + reason + "\"}");
+        this.send("relayClientDisconnect;{statusCode:" + statusCode + ",reason:\"" + reason + "\"}");
     }
 
     public disconnect(code?: number, reason?: string) {
-        this.socket.close(code, reason);
+        if(this.socket.readyState != WebSocket.CLOSED && this.socket.readyState != WebSocket.CLOSING){
+            this.socket.close(code, reason);
+        }
     }
 
     public send(message: string) {
-        this.socket.send(message);
+        if(this.socket.readyState == WebSocket.OPEN){
+            this.socket.send(message);
+        }
     }
 
     private eventOpen() {
