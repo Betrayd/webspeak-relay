@@ -39,17 +39,23 @@ export class ServerConnection {
     }
 
     public disconnect(code?: number, reason?: string) {
-        this.socket.close(code, reason);
+        if(this.socket.readyState != WebSocket.CLOSED && this.socket.readyState != WebSocket.CLOSING){
+            this.socket.close(code, reason);
+        }
     }
 
     public send(message: string) {
         //wrap this in a socket.isOpen to stop potential crashes. leave it here to find the root cause by looking at the stack trace when it crashes
-        this.socket.send(message);
+        if(this.socket.readyState == WebSocket.OPEN){
+            this.socket.send(message);
+        }
     }
 
     private eventOpen() {
         if (this.origin == null) {
-            this.socket.close(1002, "No origin");
+            if(this.socket.readyState != WebSocket.CLOSED && this.socket.readyState != WebSocket.CLOSING){
+                this.socket.close(1002, "No origin");
+            }
             console.warn("Server connecting had no origin");
             return;
         }
