@@ -89,8 +89,8 @@ export class ServerConnection {
                 console.warn(`[${this.origin}]: we were sent bad data for packet!`);
                 return;
             }
-            if(packet.type === "sendSessionId"){
-                this.handleSendSessionId(packet.requestId, packet.id);
+            if(packet.type === "addSessionId"){
+                this.handleAddSessionId(packet.requestId, packet.id);
                 return;
             }
             if(packet.type === "releaseSessionId"){
@@ -126,7 +126,7 @@ export class ServerConnection {
         client?.send(packet);
     }
 
-    private handleSendSessionId(requestId?: number, sessionId?: string){
+    private handleAddSessionId(requestId?: number, sessionId?: string){
         if(!requestId || !sessionId){
             return;
         }
