@@ -7,10 +7,12 @@ const CLIENT_CONNECTION_ROUTE = new URLPattern({ pathname: "/join" });
 
 export const storedPlayers: MultiElementBiMap<string, ServerConnection> = new MultiElementBiMap<string, ServerConnection>();
 
-export function generateSessionId(server : ServerConnection): string{
-    const returnId = crypto.randomUUID();
-    storedPlayers.add(returnId, server);
-    return returnId;
+export function checkSessionId(serverid : string, server : ServerConnection): boolean {
+    if(storedPlayers.hasKey(serverid)){
+      return false;
+    }
+    storedPlayers.add(serverid, server);
+    return true;
 }
 
 const handler = (request: Request, connInfo: Deno.ServeHandlerInfo<Deno.Addr>): Response => {

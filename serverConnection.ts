@@ -1,6 +1,6 @@
 import { ClientConnection } from "./clientConnection.ts";
 import { storedPlayers } from "./index.ts";
-import { generateSessionId } from "./index.ts"
+import { checkSessionId } from "./index.ts"
 
 export class ServerConnection {
     socket!: WebSocket;
@@ -52,7 +52,7 @@ export class ServerConnection {
     }
 
     private eventOpen() {
-        if (this.origin == null) {
+        if (!this.origin) {
             if(this.socket.readyState != WebSocket.CLOSED && this.socket.readyState != WebSocket.CLOSING){
                 this.socket.close(1002, "No origin");
             }
@@ -85,12 +85,12 @@ export class ServerConnection {
         let packet = undefined;
         try{
             packet = JSON.parse(data);
-            if(packet == undefined || packet.type == undefined || typeof packet.type != "string"){
+            if(!packet || !packet.type || typeof packet.type != "string"){
                 console.warn(`[${this.origin}]: we were sent bad data for packet!`);
                 return;
             }
-            if(packet.type === "getSessionId"){
-                this.handleGetSessionId(packet.requestId);
+            if(packet.type === "sendSessionId"){
+                this.handleSendSessionId(packet.requestId, packet.id);
                 return;
             }
             if(packet.type === "releaseSessionId"){
@@ -126,13 +126,20 @@ export class ServerConnection {
         client?.send(packet);
     }
 
-    private handleGetSessionId(requestId?: number){
-        const sessionId = generateSessionId(this);
-        this.sendReturnSessionId(requestId, sessionId);
+    private handleSendSessionId(requestId?: number, sessionId?: string){
+        if(!requestId || !sessionId){
+            return;
+        }
+        const isLegal = checkSessionId(sessionId, this);
+        if(!isLegal){
+            this.sendReturnSessionValid(requestId, false);
+            return;
+        }
+        this.sendReturnSessionValid(requestId, true);
     }
 
     private handleReleaseSessionId(id?: string, statusCode?: number, reason?: string){
-        if(id == undefined){
+        if(!id){
             return;
         }
         if(this.disconnectClient(id, statusCode, reason)){
@@ -141,14 +148,14 @@ export class ServerConnection {
     }
 
     private handleDisconnectClient(id?: string, statusCode?: number, reason?: string){
-        if(id == undefined){
+        if(!id){
             return;
         }
         this.disconnectClient(id, statusCode, reason);
     }
 
-    private sendReturnSessionId(requestId?: number, sessionId?: string){
-        this.send(';{"type":"returnSessionId","requestId":'+requestId+',"id":"'+sessionId+'"}');
+    private sendReturnSessionValid(requestId?: number, isValid?: boolean){
+        this.send(';{"type":"returnSessionId","requestId":'+requestId+',"valid":'+isValid+'}');
     }
 
     private sendAddedClient(sessionId?: string){
@@ -160,7 +167,7 @@ export class ServerConnection {
     }
 
     public clientConnected(client: ClientConnection): boolean{
-        if(client.sessionId == undefined || this.connections.has(client.sessionId)){
+        if(!client.sessionId || this.connections.has(client.sessionId)){
             return false;
         }
 
@@ -172,7 +179,7 @@ export class ServerConnection {
     }
 
     public clientDisconnected(session: string, statusCode: number, reason: string){
-        if(this.socket.OPEN){
+        if(this.socket.readyState === WebSocket.OPEN){
             this.sendClosedClient(session, statusCode, reason);
         }
         this.connections.delete(session);

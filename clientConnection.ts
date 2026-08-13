@@ -5,7 +5,7 @@ export class ClientConnection {
     socket!: WebSocket;
     requestURL!: string;
     sessionId!: string;
-    serverConnection!: ServerConnection;
+    serverConnection: ServerConnection | undefined | null;
     origin!: string| null;
 
     constructor(socket: WebSocket, requestURL: string, origin: string | null) {
@@ -45,7 +45,9 @@ export class ClientConnection {
     }
 
     public disconnect(code?: number, reason?: string) {
-        this.socket.close(code, reason);
+        if(this.socket.readyState != WebSocket.CLOSED && this.socket.readyState != WebSocket.CLOSING){
+            this.socket.close(code, reason);
+        }
     }
 
     public send(message: string) {
@@ -56,21 +58,21 @@ export class ClientConnection {
     }
 
     private eventOpen() {
-        if (this.origin == null) {
+        if (!this.origin) {
             this.socket.close(1002, "No origin");
             console.warn("Client connecting had no origin");
             return;
         }
 
         const sessionId = new URL(this.requestURL).searchParams.get("id");
-        if (sessionId == null) {
+        if (!sessionId) {
             this.socket.close(1002, "No session ID was supplied.");
             console.warn(`[${this.origin}]: Client connecting had no session ID was supplied.`);
             return;
         }
 
         const serverConnection = storedPlayers.getByKey(sessionId);
-        if (serverConnection == undefined) {
+        if (!serverConnection) {
             this.socket.close(1002, "No server assosiated with the session ID");
             console.warn(`[${this.origin}]: Client connecting had no server assosiated with the session ID`);
             return;
@@ -81,6 +83,7 @@ export class ClientConnection {
         
         //add the player to the server disconnect the client otherwise. Don't inform the server
         if(!this.serverConnection.clientConnected(this)){
+            this.serverConnection = null;
             this.socket.close(1008, "Client Already Connected");
             console.warn(`[${this.origin}]: Client connecting using already connected session ID`);
             return;
@@ -94,14 +97,14 @@ export class ClientConnection {
     }
 
     private eventClose(event: CloseEvent) {
-        if (this.serverConnection == null) { return; }
+        if (!this.serverConnection) { return; }
         this.serverConnection.clientDisconnected(this.sessionId, event.code, event.reason);
 
         console.log(`client closed ${this.origin}`);
     }
 
     relayPacket(packet: string){
-        if (this.serverConnection == null) { return; }
+        if (!this.serverConnection) { return; }
         this.serverConnection.send(this.sessionId+";"+packet);
     }
 }

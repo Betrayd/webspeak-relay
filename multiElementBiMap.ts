@@ -25,13 +25,13 @@ export class MultiElementBiMap<K, V> {
 
     public removeByKey(key: K): boolean{
         const value = this.forwardMap.get(key);
-        if(value == undefined){
+        if(!value){
             return false;
         }
         this.forwardMap.delete(key);
             
         const keySet = this.reverseMap.get(value);
-        if(keySet != undefined){
+        if(keySet){
             if(keySet.size <= 1){
                 this.reverseMap.delete(value);
             }
@@ -44,7 +44,7 @@ export class MultiElementBiMap<K, V> {
 
     public removeKeysWithValue(value: V): boolean{
         const keySet = this.reverseMap.get(value);
-        if(keySet == undefined || keySet.size <= 0){
+        if(!keySet || keySet.size <= 0){
             return false;
         }
 
